@@ -1,0 +1,190 @@
+// lib/providers/timetable_provider.dart
+import 'package:flutter/foundation.dart';
+import '../models/teacher.dart';
+import '../models/subject.dart';
+import '../models/class_model.dart';
+import '../models/timetable.dart';
+import '../models/timetable_config.dart';
+import '../services/timetable_generator.dart';
+
+class TimetableProvider with ChangeNotifier {
+  List<Teacher> _teachers = [];
+  List<Subject> _subjects = [];
+  List<ClassModel> _classes = [];
+  Map<String, Timetable> _timetables = {};
+  TimetableConfig _config = TimetableConfig();
+  bool _isGenerating = false;
+  String? _generationError;
+  String _progressMessage = '';
+
+  List<Teacher> get teachers => _teachers;
+  List<Subject> get subjects => _subjects;
+  List<ClassModel> get classes => _classes;
+  Map<String, Timetable> get timetables => _timetables;
+  TimetableConfig get config => _config;
+  bool get isGenerating => _isGenerating;
+  String? get generationError => _generationError;
+  String get progressMessage => _progressMessage;
+
+  // Teacher Management
+  void addTeacher(Teacher teacher) {
+    _teachers.add(teacher);
+    notifyListeners();
+  }
+
+  void updateTeacher(String id, Teacher teacher) {
+    final index = _teachers.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      _teachers[index] = teacher;
+      notifyListeners();
+    }
+  }
+
+  void deleteTeacher(String id) {
+    _teachers.removeWhere((t) => t.id == id);
+    notifyListeners();
+  }
+
+  // Subject Management
+  void addSubject(Subject subject) {
+    _subjects.add(subject);
+    notifyListeners();
+  }
+
+  void updateSubject(String id, Subject subject) {
+    final index = _subjects.indexWhere((s) => s.id == id);
+    if (index != -1) {
+      _subjects[index] = subject;
+      notifyListeners();
+    }
+  }
+
+  void deleteSubject(String id) {
+    _subjects.removeWhere((s) => s.id == id);
+    notifyListeners();
+  }
+
+  // Class Management
+  void addClass(ClassModel classModel) {
+    _classes.add(classModel);
+    notifyListeners();
+  }
+
+  void updateClass(String id, ClassModel classModel) {
+    final index = _classes.indexWhere((c) => c.id == id);
+    if (index != -1) {
+      _classes[index] = classModel;
+      notifyListeners();
+    }
+  }
+
+  void deleteClass(String id) {
+    _classes.removeWhere((c) => c.id == id);
+    _timetables.remove(id);
+    notifyListeners();
+  }
+
+  // Config Management
+  void updateConfig(TimetableConfig config) {
+    _config = config;
+    notifyListeners();
+  }
+
+  // Timetable Generation
+  Future<void> generateTimetables() async {
+    _isGenerating = true;
+    _generationError = null;
+    _progressMessage = 'Starting generation...';
+    notifyListeners();
+
+    try {
+      final generator = TimetableGenerator(
+        config: _config,
+        teachers: _teachers,
+        subjects: _subjects,
+        classes: _classes,
+      );
+
+      _timetables = await generator.generate(
+        maxAttempts: 100,
+        onProgress: (message) {
+          _progressMessage = message;
+          notifyListeners();
+        },
+      );
+
+      _progressMessage = 'Generation completed successfully!';
+    } catch (e) {
+      _generationError = e.toString();
+      _progressMessage = 'Generation failed';
+    } finally {
+      _isGenerating = false;
+      notifyListeners();
+    }
+  }
+
+  void clearTimetables() {
+    _timetables.clear();
+    notifyListeners();
+  }
+
+  // Helper methods
+  Teacher? getTeacher(String id) {
+    try {
+      return _teachers.firstWhere((t) => t.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Subject? getSubject(String id) {
+    try {
+      return _subjects.firstWhere((s) => s.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  ClassModel? getClass(String id) {
+    try {
+      return _classes.firstWhere((c) => c.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Load sample data for testing
+  void loadSampleData() {
+    _subjects = [
+      Subject(id: 's1', name: 'Mathematics', code: 'MATH', periodsPerWeek: 6),
+      Subject(id: 's2', name: 'English', code: 'ENG', periodsPerWeek: 5),
+      Subject(id: 's3', name: 'Science', code: 'SCI', periodsPerWeek: 5),
+      Subject(id: 's4', name: 'Social Studies', code: 'SS', periodsPerWeek: 4),
+      Subject(id: 's5', name: 'Physical Education', code: 'PE', periodsPerWeek: 2),
+    ];
+
+    _teachers = [
+      Teacher(id: 't1', name: 'Mr. Smith', subjectIds: ['s1']),
+      Teacher(id: 't2', name: 'Ms. Johnson', subjectIds: ['s2']),
+      Teacher(id: 't3', name: 'Dr. Williams', subjectIds: ['s3']),
+      Teacher(id: 't4', name: 'Mrs. Brown', subjectIds: ['s4']),
+      Teacher(id: 't5', name: 'Mr. Davis', subjectIds: ['s5']),
+      Teacher(id: 't6', name: 'Ms. Garcia', subjectIds: ['s1', 's3']),
+    ];
+
+    _classes = [
+      ClassModel(id: 'c1', name: 'Grade 10-A', subjectIds: ['s1', 's2', 's3', 's4', 's5']),
+      ClassModel(id: 'c2', name: 'Grade 10-B', subjectIds: ['s1', 's2', 's3', 's4', 's5']),
+    ];
+
+    _config = TimetableConfig(
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      periodsPerDay: 8,
+      maxConsecutivePeriodsPerTeacher: 4,
+      maxPeriodsPerDayPerTeacher: 6,
+      breakPeriods: [4], // 4th period is break
+    );
+
+    notifyListeners();
+  }
+}
