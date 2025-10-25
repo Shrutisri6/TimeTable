@@ -1,0 +1,94 @@
+// lib/main.dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/timetable_provider.dart';
+import 'screens/home_screen.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => TimetableProvider(),
+      child: MaterialApp(
+        title: 'Timetable Generator',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          useMaterial3: true,
+        ),
+        home: const HomeScreen(),
+      ),
+    );
+  }
+}
+
+// lib/screens/home_screen.dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/timetable_provider.dart';
+import 'teachers_screen.dart';
+import 'subjects_screen.dart';
+import 'classes_screen.dart';
+import 'timetable_screen.dart';
+import 'config_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _screens = [
+    const DashboardScreen(),
+    const TeachersScreen(),
+    const SubjectsScreen(),
+    const ClassesScreen(),
+    const TimetableScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Timetable Generator'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ConfigScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person),
+            label: 'Teachers',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.book),
+            label: 'Subjects',
